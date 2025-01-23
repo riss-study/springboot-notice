@@ -1,8 +1,10 @@
 package dev.riss.notice.domain.notice;
 
 import dev.riss.notice.domain.BaseEntity;
+import dev.riss.notice.web.dto.response.NoticeRetrieveDto;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -13,30 +15,43 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
+@ToString
 public class Notice extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long uid;
 
-    @Column(nullable = false, columnDefinition = "공지사항 제목")
+    @Column(nullable = false)
     private String title;
     
-    @Column(nullable = false, columnDefinition = "공지사항 내용")
+    @Column(nullable = false)
     private String content;
 
-    @Column(columnDefinition = "공지사항 조회수")
+    @Column(nullable = false)
+    @ColumnDefault("0")
     private Long views;
     
-    @Column(columnDefinition = "공지사항 글쓴이")
+    @Column(nullable = false)
     private String author;
 
-    @Column(nullable = false, columnDefinition = "공지 시작 일시")
+    @Column(nullable = false)
     private LocalDateTime startAt;
 
-    @Column(nullable = false, columnDefinition = "공지 종료 일시")
+    @Column(nullable = false)
     private LocalDateTime endAt;
 
     @OneToMany(mappedBy = "notice", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<Attachment> attachmentList = new ArrayList<>();
+
+    public static NoticeRetrieveDto toNoticeRetrieveDto(Notice notice) {
+        return NoticeRetrieveDto.builder()
+                .uid(notice.getUid())
+                .title(notice.getTitle())
+                .content(notice.getContent())
+                .createdAt(notice.getCreatedAt())
+                .views(notice.getViews())
+                .author(notice.getAuthor())
+                .build();
+    }
 }
