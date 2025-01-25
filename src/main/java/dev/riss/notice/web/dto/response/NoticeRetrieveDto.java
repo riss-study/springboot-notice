@@ -3,7 +3,6 @@ package dev.riss.notice.web.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -14,7 +13,7 @@ public class NoticeRetrieveDto {
     private String title;
     private String content;
 
-    private LocalDateTime createdAt;
+    private String createdAt;
     private Long views;
     private String author;
 

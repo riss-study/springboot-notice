@@ -9,15 +9,19 @@ import dev.riss.notice.web.dto.UidDto;
 import dev.riss.notice.web.dto.request.NoticeRequestDto;
 import dev.riss.notice.web.dto.response.NoticeAttachmentDto;
 import dev.riss.notice.web.dto.response.NoticeRetrieveDto;
+import dev.riss.notice.web.dto.response.NoticeSimpleRetrieveDto;
 import dev.riss.notice.web.dto.response.ResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,7 +30,10 @@ import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,6 +49,7 @@ public class NoticeService {
     private final String NOTICE_ATTACHMENT_URL = "uploads";
 
     private final int PAGE_SIZE = 10;
+    private final Map<Long, Long> viewCountCache = new ConcurrentHashMap<>();
 
     public ResponseDto<UidDto> createNotice(NoticeRequestDto noticeDto) {
         Notice notice = Notice
@@ -57,6 +65,71 @@ public class NoticeService {
         Notice savedNotice = noticeRepository.save(notice);
         UidDto noticeUidDto = UidDto.builder().uid(savedNotice.getUid()).build();
         return ResponseUtil.SUCCESS("", noticeUidDto);
+    }
+
+
+    @Transactional(readOnly = true)
+    public ResponseDto<List<NoticeSimpleRetrieveDto>> findAll(int pageNo) {
+        PageRequest pageRequest = PageRequest.of(pageNo, PAGE_SIZE);
+        Page<Notice> page = noticeRepository.findAllByEndAtAfter(LocalDateTime.now(), pageRequest);
+
+        if (!page.hasContent()) return ResponseUtil.FAILURE("데이터가 없습니다.", null);
+        List<Notice> content = page.getContent();
+
+        List<NoticeSimpleRetrieveDto> resultData = content.stream().map(Notice::toNoticeSimpleRetrieveDto).collect(Collectors.toList());
+
+        return ResponseUtil.SUCCESS("", resultData);
+    }
+
+    @Transactional(readOnly = true)
+    public ResponseDto<NoticeRetrieveDto> findById(Long noticeUid) {
+        Notice findNotice = noticeRepository.findById(noticeUid)
+                .orElseThrow(() -> new NoSuchElementException("해당 게시글이 존재하지 않습니다. uid: " + noticeUid));
+
+        List<NoticeAttachmentDto> attachmentDtoList = attachmentRepository.findAllByNoticeUid(noticeUid)
+                .stream().map(attachment -> attachment.toDto(SERVER_HTTP_URL))
+                .collect(Collectors.toList());
+
+        NoticeRetrieveDto resultData = findNotice.toNoticeRetrieveDto(attachmentDtoList);
+
+        CompletableFuture.runAsync(() -> incrementViewCount(noticeUid));
+
+        return ResponseUtil.SUCCESS("", resultData);
+    }
+
+    public void incrementViewCount(Long noticeUid) {
+        viewCountCache.merge(noticeUid, 1L, Long::sum);
+    }
+
+    @Scheduled(fixedRate = 60000)
+    public void syncViewCountsToDatabase() {
+        for (Map.Entry<Long, Long> entry : viewCountCache.entrySet()) {
+            noticeRepository.incrementViewCount(entry.getKey(), entry.getValue());
+        }
+        viewCountCache.clear();
+    }
+
+    public ResponseDto updateNotice(Long noticeUid, NoticeRequestDto noticeDto) {
+        Notice findNotice = noticeRepository.findById(noticeUid)
+                .orElseThrow(() -> new NoSuchElementException("해당 게시글이 존재하지 않습니다. uid: " + noticeUid));
+
+        findNotice.update(noticeDto);
+        return ResponseUtil.SUCCESS("", null);
+    }
+
+    public ResponseDto deleteNotice(Long noticeUid) throws Exception {
+        Notice findNotice = noticeRepository.findById(noticeUid)
+                .orElseThrow(() -> new NoSuchElementException("해당 게시글이 존재하지 않습니다. uid: " + noticeUid));
+
+        List<Attachment> attachmentList = findNotice.getAttachmentList();
+        for (Attachment attachment : attachmentList) {
+            deleteFile(attachment);
+        }
+
+        attachmentRepository.deleteAll(attachmentList);
+        noticeRepository.deleteById(noticeUid);
+
+        return ResponseUtil.SUCCESS("", null);
     }
 
     public ResponseDto uploadNoticeAttachment(MultipartFile[] files, Long noticeUid) {
@@ -87,46 +160,45 @@ public class NoticeService {
     private boolean storeFile(MultipartFile file, String newFileName) {
         try {
             Path targetLocation = Paths.get(NOTICE_ATTACHMENT_URL + "/" + newFileName).toAbsolutePath().normalize();
+            File dir = new File(NOTICE_ATTACHMENT_URL);
+            if (!dir.exists()) {
+                try {
+                    dir.mkdirs();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
             return true;
         } catch (IOException e) {
-            throw new RuntimeException("Could not store file " + file.getOriginalFilename(), e);
+            throw new RuntimeException("첨부파일 업로드에 실패했습니다. 파일 제목: " + file.getOriginalFilename(), e);
         }
 
     }
 
-    @Transactional(readOnly = true)
-    public ResponseDto<List<NoticeRetrieveDto>> findAll(int pageNo) {
-        PageRequest pageRequest = PageRequest.of(pageNo, PAGE_SIZE);
-        Page<Notice> page = noticeRepository.findAllByEndAtAfter(LocalDateTime.now(), pageRequest);
-
-        if (!page.hasContent()) return ResponseUtil.FAILURE("데이터가 없습니다.", null);
-        List<Notice> content = page.getContent();
-
-        List<NoticeRetrieveDto> resultData = content.stream().map(Notice::toNoticeRetrieveDto).collect(Collectors.toList());
-
-        return ResponseUtil.SUCCESS("", resultData);
-    }
-
-    @Transactional(readOnly = true)
-    public ResponseDto<NoticeRetrieveDto> findById(Long noticeUid) {
+    public ResponseDto deleteNoticeAttachment(Long noticeUid, Long attachmentUid) throws Exception {
         Notice findNotice = noticeRepository.findById(noticeUid)
                 .orElseThrow(() -> new NoSuchElementException("해당 게시글이 존재하지 않습니다. uid: " + noticeUid));
 
-        List<NoticeAttachmentDto> attachmentDtoList = attachmentRepository.findAllByNoticeUid(noticeUid)
-                .stream().map(attachment -> attachment.toDto(SERVER_HTTP_URL))
-                .collect(Collectors.toList());
+        Attachment findAttachment = attachmentRepository.findById(attachmentUid)
+                .orElseThrow(() -> new NoSuchElementException("해당 첨부파일이 존재하지 않습니다. uid: " + noticeUid));
 
-        NoticeRetrieveDto resultData = NoticeRetrieveDto.builder()
-                .uid(findNotice.getUid())
-                .title(findNotice.getTitle())
-                .content(findNotice.getContent())
-                .createdAt(findNotice.getCreatedAt())
-                .views(findNotice.getViews())
-                .author(findNotice.getAuthor())
-                .noticeAttachmentDtoList(attachmentDtoList)
-                .build();
+        if (findAttachment.getNotice().getUid() != findNotice.getUid())
+            throw new NoSuchElementException("해당 게시글에 해당하는 첨부파일이 없습니다. notice uid: " + noticeUid + ", attachment uid: " + attachmentUid);
 
-        return ResponseUtil.SUCCESS("", resultData);
+        attachmentRepository.deleteById(attachmentUid);
+        deleteFile(findAttachment);
+
+        return ResponseUtil.SUCCESS("", null);
+    }
+
+    @Async
+    protected CompletableFuture<Void> deleteFile(Attachment findAttachment) throws Exception {
+        Path path = Paths.get(NOTICE_ATTACHMENT_URL + "/" + findAttachment.getNewFileName());
+        Files.delete(path);
+        if (path.toFile().exists())
+            throw new Exception("해당 파일 삭제에 실패했습니다. 파일이름: " + findAttachment.getNewFileName());
+
+        return CompletableFuture.completedFuture(null);
     }
 }

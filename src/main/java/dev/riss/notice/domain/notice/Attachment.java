@@ -54,8 +54,8 @@ public class Attachment {
     public NoticeAttachmentDto toDto (String url) {
         return NoticeAttachmentDto
                 .builder()
+                .uid(uid)
                 .originFileName(originFileName)
-                .newFileName(newFileName)
                 .fileUrl(url + "/" + path + "/" +  newFileName)
                 .build();
     }

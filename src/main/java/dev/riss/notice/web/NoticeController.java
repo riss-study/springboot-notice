@@ -26,38 +26,39 @@ public class NoticeController {
     }
 
     /**
-     * 게시글 첨부파일 등록 API
-     * (일단 편의 상 첨부파일 DB + storage 업로드 한꺼번에 할 예정)
-     * @param files
+     * 게시글 수정 API
+     * @param noticeUid
+     * @param noticeDto
      * @return
      */
-    @PostMapping("/{notice_uid}/files")
-    public ResponseDto uploadNoticeAttachment(@RequestParam("files") MultipartFile[] files,
-    @PathVariable("notice_uid") long noticeUid) {
-        return noticeService.uploadNoticeAttachment(files, noticeUid);
+    @PutMapping("/{uid}")
+    public ResponseDto updateNotice(@PathVariable("uid") Long noticeUid,
+                                    @RequestBody NoticeRequestDto noticeDto) {
+        return noticeService.updateNotice(noticeUid, noticeDto);
     }
 
-    /*
-     * 게시글 수정 API
-     * */
-
-
-    /*
+    /**
      * 게시글 삭제 API
-     * */
+     * @param noticeUid
+     * @return
+     */
+    @DeleteMapping("/{uid}")
+    public ResponseDto deleteNotice(@PathVariable("uid") Long noticeUid) throws Exception {
+        return noticeService.deleteNotice(noticeUid);
+    }
 
-    /*
-    *
-    * 전체 조회 API
-    * Todo: List<{ uid, title, createdAt }> 형태로 DTO 수정 (현재는 하나의 게시글 조회 API 용 DTO 를 List 로 응답)
-    * */
+    /**
+     * 게시글 전체 조회 API
+     * @param page
+     * @return
+     */
     @GetMapping("/all")
     public ResponseDto findAll(@RequestParam(required = false, defaultValue = "0", name = "page") int page) {
         return noticeService.findAll(page);
     }
 
     /**
-     * 단건 조회 API
+     * 게시글 단건 조회 API
      * Todo: views count plus
      * @param noticeUid
      * @return
@@ -65,5 +66,26 @@ public class NoticeController {
     @GetMapping("/{notice_uid}")
     public ResponseDto findById(@PathVariable("notice_uid") Long noticeUid) {
         return noticeService.findById(noticeUid);
+    }
+
+    /**
+     * 게시글 첨부파일 등록 API
+     * (일단 편의 상 첨부파일 DB + storage 업로드 한꺼번에 할 예정)
+     * @param files
+     * @return
+     */
+    @PostMapping("/{uid}/file")
+    public ResponseDto uploadNoticeAttachment(@RequestParam("files") MultipartFile[] files,
+                                              @PathVariable("uid") Long noticeUid) {
+        return noticeService.uploadNoticeAttachment(files, noticeUid);
+    }
+
+    /**
+     * 게시글 첨부파일 삭제 API
+     */
+    @DeleteMapping("/{notice_uid}/file/{file_uid}")
+    public ResponseDto deleteNoticeAttachment(@PathVariable("notice_uid") Long noticeUid,
+                                              @PathVariable("file_uid") Long fileUid) throws Exception {
+        return noticeService.deleteNoticeAttachment(noticeUid, fileUid);
     }
 }

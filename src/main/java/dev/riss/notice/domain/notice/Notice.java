@@ -1,7 +1,11 @@
 package dev.riss.notice.domain.notice;
 
 import dev.riss.notice.domain.BaseEntity;
+import dev.riss.notice.util.DateUtil;
+import dev.riss.notice.web.dto.request.NoticeRequestDto;
+import dev.riss.notice.web.dto.response.NoticeAttachmentDto;
 import dev.riss.notice.web.dto.response.NoticeRetrieveDto;
+import dev.riss.notice.web.dto.response.NoticeSimpleRetrieveDto;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
@@ -44,14 +48,31 @@ public class Notice extends BaseEntity {
     @OneToMany(mappedBy = "notice", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<Attachment> attachmentList = new ArrayList<>();
 
-    public static NoticeRetrieveDto toNoticeRetrieveDto(Notice notice) {
+    public NoticeRetrieveDto toNoticeRetrieveDto(List<NoticeAttachmentDto> noticeAttachmentDtoList) {
         return NoticeRetrieveDto.builder()
-                .uid(notice.getUid())
-                .title(notice.getTitle())
-                .content(notice.getContent())
-                .createdAt(notice.getCreatedAt())
-                .views(notice.getViews())
-                .author(notice.getAuthor())
+                .uid(this.getUid())
+                .title(this.getTitle())
+                .content(this.getContent())
+                .createdAt(DateUtil.toString(this.getCreatedAt()))
+                .views(this.getViews())
+                .author(this.getAuthor())
+                .noticeAttachmentDtoList(noticeAttachmentDtoList)
                 .build();
+    }
+
+    public NoticeSimpleRetrieveDto toNoticeSimpleRetrieveDto() {
+        return NoticeSimpleRetrieveDto.builder()
+                .uid(this.getUid())
+                .title(this.getTitle())
+                .createdAt(DateUtil.toString(this.getCreatedAt()))
+                .build();
+    }
+
+    public void update(NoticeRequestDto noticeDto) {
+        this.title = noticeDto.getTitle();
+        this.content = noticeDto.getContent();
+        this.author = noticeDto.getAuthor();
+        this.startAt = noticeDto.getStartAt();
+        this.endAt = noticeDto.getEndAt();
     }
 }

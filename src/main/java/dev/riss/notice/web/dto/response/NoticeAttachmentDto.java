@@ -7,8 +7,7 @@ import lombok.Data;
 @Builder
 public class NoticeAttachmentDto {
 
+    public Long uid;
     public String originFileName;
-    public String newFileName;
     public String fileUrl;
-
 }
