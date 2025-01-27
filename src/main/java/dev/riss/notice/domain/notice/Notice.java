@@ -1,7 +1,6 @@
 package dev.riss.notice.domain.notice;
 
 import dev.riss.notice.domain.BaseEntity;
-import dev.riss.notice.util.DateUtil;
 import dev.riss.notice.web.dto.request.NoticeRequestDto;
 import dev.riss.notice.web.dto.response.NoticeAttachmentDto;
 import dev.riss.notice.web.dto.response.NoticeRetrieveDto;
@@ -53,7 +52,7 @@ public class Notice extends BaseEntity {
                 .uid(this.getUid())
                 .title(this.getTitle())
                 .content(this.getContent())
-                .createdAt(DateUtil.toString(this.getCreatedAt()))
+                .createdAt(this.getCreatedAt())
                 .views(this.getViews())
                 .author(this.getAuthor())
                 .noticeAttachmentDtoList(noticeAttachmentDtoList)
@@ -64,7 +63,7 @@ public class Notice extends BaseEntity {
         return NoticeSimpleRetrieveDto.builder()
                 .uid(this.getUid())
                 .title(this.getTitle())
-                .createdAt(DateUtil.toString(this.getCreatedAt()))
+                .createdAt(this.getCreatedAt())
                 .build();
     }
 

@@ -59,7 +59,6 @@ public class NoticeController {
 
     /**
      * 게시글 단건 조회 API
-     * Todo: views count plus
      * @param noticeUid
      * @return
      */

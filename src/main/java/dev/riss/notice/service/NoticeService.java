@@ -64,7 +64,7 @@ public class NoticeService {
 
         Notice savedNotice = noticeRepository.save(notice);
         UidDto noticeUidDto = UidDto.builder().uid(savedNotice.getUid()).build();
-        return ResponseUtil.SUCCESS("", noticeUidDto);
+        return ResponseUtil.success(noticeUidDto);
     }
 
 
@@ -73,12 +73,12 @@ public class NoticeService {
         PageRequest pageRequest = PageRequest.of(pageNo, PAGE_SIZE);
         Page<Notice> page = noticeRepository.findAllByEndAtAfter(LocalDateTime.now(), pageRequest);
 
-        if (!page.hasContent()) return ResponseUtil.FAILURE("데이터가 없습니다.", null);
+        if (!page.hasContent()) return ResponseUtil.failure("데이터가 없습니다.", null);
         List<Notice> content = page.getContent();
 
         List<NoticeSimpleRetrieveDto> resultData = content.stream().map(Notice::toNoticeSimpleRetrieveDto).collect(Collectors.toList());
 
-        return ResponseUtil.SUCCESS("", resultData);
+        return ResponseUtil.success(resultData);
     }
 
     @Transactional(readOnly = true)
@@ -94,7 +94,7 @@ public class NoticeService {
 
         CompletableFuture.runAsync(() -> incrementViewCount(noticeUid));
 
-        return ResponseUtil.SUCCESS("", resultData);
+        return ResponseUtil.success(resultData);
     }
 
     public void incrementViewCount(Long noticeUid) {
@@ -114,7 +114,7 @@ public class NoticeService {
                 .orElseThrow(() -> new NoSuchElementException("해당 게시글이 존재하지 않습니다. uid: " + noticeUid));
 
         findNotice.update(noticeDto);
-        return ResponseUtil.SUCCESS("", null);
+        return ResponseUtil.success(null);
     }
 
     public ResponseDto deleteNotice(Long noticeUid) throws Exception {
@@ -129,7 +129,7 @@ public class NoticeService {
         attachmentRepository.deleteAll(attachmentList);
         noticeRepository.deleteById(noticeUid);
 
-        return ResponseUtil.SUCCESS("", null);
+        return ResponseUtil.success(null);
     }
 
     public ResponseDto uploadNoticeAttachment(MultipartFile[] files, Long noticeUid) {
@@ -154,7 +154,7 @@ public class NoticeService {
             storeFile(file, newFileName);
         }
         attachmentRepository.saveAll(attachmentList);
-        return ResponseUtil.SUCCESS("", null);
+        return ResponseUtil.success(null);
     }
 
     private boolean storeFile(MultipartFile file, String newFileName) {
@@ -189,7 +189,7 @@ public class NoticeService {
         attachmentRepository.deleteById(attachmentUid);
         deleteFile(findAttachment);
 
-        return ResponseUtil.SUCCESS("", null);
+        return ResponseUtil.success(null);
     }
 
     @Async

@@ -17,24 +17,24 @@ public class ResponseAdvice {
     @ExceptionHandler({IllegalArgumentException.class})
     public ResponseDto exception(IllegalArgumentException e) {
         log.error(e.getMessage());
-        return ResponseUtil.ERROR(e.getMessage(), null);
+        return ResponseUtil.error(e.getMessage(), null);
     }
 
     @ExceptionHandler({NoSuchElementException.class})
     public ResponseDto exception(NoSuchElementException e) {
         log.error(e.getMessage());
-        return ResponseUtil.ERROR(e.getMessage(), null);
+        return ResponseUtil.error(e.getMessage(), null);
     }
 
     @ExceptionHandler({RuntimeException.class})
     public ResponseDto exception(RuntimeException e) {
         log.error(e.getMessage());
-        return ResponseUtil.ERROR(e.getMessage(), null);
+        return ResponseUtil.error(e.getMessage(), null);
     }
 
     @ExceptionHandler({Exception.class})
     public ResponseDto exception(Exception e) {
         log.error(e.getMessage());
-        return ResponseUtil.ERROR(e.getMessage(), null);
+        return ResponseUtil.error(e.getMessage(), null);
     }
 }
