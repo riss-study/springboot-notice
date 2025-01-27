@@ -1,5 +1,6 @@
 package dev.riss.notice.config;
 
+import dev.riss.notice.exception.ApiException;
 import dev.riss.notice.util.ResponseUtil;
 import dev.riss.notice.web.dto.response.ResponseDto;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,12 @@ import java.util.NoSuchElementException;
 @Component
 @Slf4j
 public class ResponseAdvice {
+
+    @ExceptionHandler({ApiException.class})
+    public ResponseDto exception(ApiException e) {
+        log.error(e.getMessage());
+        return ResponseUtil.failure(e.getMessage(), null);
+    }
 
     @ExceptionHandler({IllegalArgumentException.class})
     public ResponseDto exception(IllegalArgumentException e) {

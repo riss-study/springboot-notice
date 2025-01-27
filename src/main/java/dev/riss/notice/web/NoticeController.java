@@ -1,6 +1,7 @@
 package dev.riss.notice.web;
 
 import dev.riss.notice.service.NoticeService;
+import dev.riss.notice.web.dto.request.AttachmentDeleteRequestDto;
 import dev.riss.notice.web.dto.request.NoticeRequestDto;
 import dev.riss.notice.web.dto.response.ResponseDto;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,7 @@ public class NoticeController {
      * @return
      */
     @DeleteMapping("/{uid}")
-    public ResponseDto deleteNotice(@PathVariable("uid") Long noticeUid) throws Exception {
+    public ResponseDto deleteNotice(@PathVariable("uid") Long noticeUid) {
         return noticeService.deleteNotice(noticeUid);
     }
 
@@ -62,29 +63,32 @@ public class NoticeController {
      * @param noticeUid
      * @return
      */
-    @GetMapping("/{notice_uid}")
-    public ResponseDto findById(@PathVariable("notice_uid") Long noticeUid) {
+    @GetMapping("/{uid}")
+    public ResponseDto findById(@PathVariable("uid") Long noticeUid) {
         return noticeService.findById(noticeUid);
     }
 
     /**
      * 게시글 첨부파일 등록 API
      * (일단 편의 상 첨부파일 DB + storage 업로드 한꺼번에 할 예정)
-     * @param files
+     * @param attachments
      * @return
      */
-    @PostMapping("/{uid}/file")
-    public ResponseDto uploadNoticeAttachment(@RequestParam("files") MultipartFile[] files,
+    @PostMapping("/{uid}/attachment")
+    public ResponseDto uploadNoticeAttachment(@RequestParam("attachments") MultipartFile[] attachments,
                                               @PathVariable("uid") Long noticeUid) {
-        return noticeService.uploadNoticeAttachment(files, noticeUid);
+        return noticeService.uploadNoticeAttachment(attachments, noticeUid);
     }
 
     /**
      * 게시글 첨부파일 삭제 API
+     * @param noticeUid
+     * @param attachmentDeleteRequestDto
+     * @return
      */
-    @DeleteMapping("/{notice_uid}/file/{file_uid}")
-    public ResponseDto deleteNoticeAttachment(@PathVariable("notice_uid") Long noticeUid,
-                                              @PathVariable("file_uid") Long fileUid) throws Exception {
-        return noticeService.deleteNoticeAttachment(noticeUid, fileUid);
+    @PostMapping("/{uid}/attachment/bulk-delete")
+    public ResponseDto deleteNoticeAttachment(@PathVariable("uid") Long noticeUid,
+                                              @RequestBody AttachmentDeleteRequestDto attachmentDeleteRequestDto) {
+        return noticeService.deleteNoticeAttachment(noticeUid, attachmentDeleteRequestDto);
     }
 }
