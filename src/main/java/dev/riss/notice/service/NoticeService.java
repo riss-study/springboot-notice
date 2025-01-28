@@ -140,7 +140,7 @@ public class NoticeService {
                 .orElseThrow(() -> new ApiException("첨부파일을 업로드하려는 게시글이 존재하지 않습니다."));
 
         List<Attachment> attachmentList = new ArrayList<>();
-
+        List<CompletableFuture<Void>> futureList = new ArrayList<>();
         try {
             for (MultipartFile attachment : attachments) {
                 String originFileName = attachment.getOriginalFilename();
@@ -156,6 +156,9 @@ public class NoticeService {
                 attachmentList.add(attachmentEntity);
 
                 CompletableFuture<Void> future = storeFile(attachment, newFileName);
+                futureList.add(future);
+            }
+            for (CompletableFuture<Void> future : futureList) {
                 future.get();
             }
         } catch (Exception e) {
